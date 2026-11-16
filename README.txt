@@ -54,7 +54,7 @@ BUILD AND INSTALL
 
 5. The menu app starts automatically. It is installed at:
 
-   ~/Applications/SWPulse.app
+   ~/Applications/Pulsebar.app
 
    On a fresh installation services start disabled. Enable what you need in
    the menu. Existing installation settings are preserved during an update.
@@ -180,7 +180,7 @@ build errors if an upstream project changes its integration API.
 
 FILES CREATED
 
-  ~/Applications/SWPulse.app
+  ~/Applications/Pulsebar.app
   ~/Library/Application Support/SWPulse/
   ~/Library/LaunchAgents/ru.swpulse.menubar.plist
   ~/Library/LaunchAgents/ru.swpulse.dns-guard.plist

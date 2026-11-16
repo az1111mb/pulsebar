@@ -19,7 +19,7 @@ bash "Build and Install.command"
 
 The builder fetches the latest stable releases from [AdGuard dnsproxy](https://github.com/AdguardTeam/dnsproxy) and [Flowseal TG WS Proxy](https://github.com/Flowseal/tg-ws-proxy), verifies the dnsproxy release digest, records source archive hashes, compiles the app and installs its services. Internet is required. Enter an administrator password only into the local Terminal prompt for the DNS service.
 
-The app appears in your menu bar. Fresh installs start with the user-facing switches off. DNS and proxy preferences are preserved on updates. The local DNS daemon remains available on loopback even with the DNS switch off; the switch controls whether macOS uses it.
+The app is installed as `~/Applications/Pulsebar.app` and appears in your menu bar. To reopen it after quitting, search for **Pulsebar** in Spotlight (Command–Space), or run `open -a Pulsebar`. Updates automatically migrate the older `SWPulse.app` name. Fresh installs start with the user-facing switches off. DNS and proxy preferences are preserved on updates. The local DNS daemon remains available on loopback even with the DNS switch off; the switch controls whether macOS uses it.
 
 For compilation without installing:
 

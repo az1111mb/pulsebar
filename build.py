@@ -54,6 +54,13 @@ def copy(source, target):
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
 
+def legacy_menu_app():
+    path = Path.home() / 'Applications/SWPulse.app'
+    info = path / 'Contents/Info.plist'
+    if info.exists() and plistlib.loads(info.read_bytes()).get('CFBundleIdentifier') == 'ru.swpulse.menubar':
+        return path
+    return None
+
 def activate(app, dns, tg_source, requirements, manifest):
     SUPPORT.mkdir(parents=True, exist_ok=True, mode=0o700)
     SUPPORT.chmod(0o700)
@@ -109,18 +116,25 @@ def activate(app, dns, tg_source, requirements, manifest):
     elif subprocess.run(['/bin/launchctl', 'print', 'system/ru.swpulse.local-dns'], capture_output=True).returncode:
         run('/usr/bin/sudo', '/bin/launchctl', 'bootstrap', 'system', installed_plist)
 
-    app_target = Path.home() / 'Applications/SWPulse.app'
+    app_target = Path.home() / 'Applications/Pulsebar.app'
     app_target.parent.mkdir(exist_ok=True)
-    executable = str(app_target / 'Contents/MacOS/SWPulse')
-    running = subprocess.run(['/usr/bin/pgrep', '-f', '^' + re.escape(executable) + '$'], capture_output=True, text=True)
-    for pid in running.stdout.split():
-        os.kill(int(pid), signal.SIGTERM)
+    legacy = legacy_menu_app()
+    for existing in [app_target, legacy]:
+        if existing is None or not existing.exists():
+            continue
+        info = plistlib.loads((existing / 'Contents/Info.plist').read_bytes())
+        executable = str(existing / 'Contents/MacOS' / info['CFBundleExecutable'])
+        running = subprocess.run(['/usr/bin/pgrep', '-f', '^' + re.escape(executable) + '$'], capture_output=True, text=True)
+        for pid in running.stdout.split():
+            os.kill(int(pid), signal.SIGTERM)
     if app_target.exists():
-        backup = WORK / 'previous-SWPulse.app'
+        backup = WORK / 'previous-Pulsebar.app'
         if backup.exists():
             shutil.rmtree(backup)
         shutil.move(app_target, backup)
     shutil.copytree(app, app_target)
+    if legacy is not None:
+        shutil.rmtree(legacy)
     guard = {'Label': 'ru.swpulse.dns-guard', 'ProgramArguments': [str(python_path), str(SUPPORT / 'dns_guard.py')],
              'RunAtLoad': True, 'KeepAlive': True, 'ThrottleInterval': 5, 'ProcessType': 'Background',
              'StandardOutPath': str(Path.home() / 'Library/Logs/SWPulse-dns-guard.log'),
@@ -146,7 +160,10 @@ def install(app, dns, tg_source, requirements, manifest):
     active = {label: subprocess.run(['/bin/launchctl', 'print', domain + '/' + label], capture_output=True).returncode == 0 for label in labels}
     managed = [SUPPORT / name for name in ['swpulse.py', 'network_check.py', 'dns_guard.py', 'tg_common.py', 'tg_runner.py', 'tg_control.py', 'health.py', 'python-path.txt', 'versions.json', 'tg-source', 'tg-venv']]
     managed += [agents / (label + '.plist') for label in labels + ['ru.swpulse.menubar']]
-    managed += [Path.home() / 'Applications/SWPulse.app']
+    managed += [Path.home() / 'Applications/Pulsebar.app']
+    legacy = legacy_menu_app()
+    if legacy is not None:
+        managed.append(legacy)
     def restore_copy(src, dst):
         if src.is_symlink():
             dst.symlink_to(src.readlink(), target_is_directory=True)
@@ -228,19 +245,19 @@ def main():
     (WORK / 'versions.json').write_text(json.dumps(manifest, indent=2))
     print('dnsproxy:', manifest['dnsproxy'], 'TG WS Proxy:', tag, flush=True)
 
-    app = WORK / 'SWPulse.app'
+    app = WORK / 'Pulsebar.app'
     contents = app / 'Contents'
     (contents / 'MacOS').mkdir(parents=True, exist_ok=True)
     (contents / 'Resources').mkdir(exist_ok=True)
     cache = WORK / 'swift-cache'
-    run('/usr/bin/xcrun', 'swiftc', SOURCE / 'Pulsebar.swift', '-o', contents / 'MacOS/SWPulse',
+    run('/usr/bin/xcrun', 'swiftc', SOURCE / 'Pulsebar.swift', '-o', contents / 'MacOS/Pulsebar',
         '-framework', 'AppKit', '-framework', 'CoreImage', '-module-cache-path', cache, '-O', '-target', arch + '-apple-macosx14.0')
     iconset = WORK / 'AppIcon.iconset'
     run('/usr/bin/xcrun', 'swift', '-module-cache-path', cache, SOURCE / 'Icon.swift', iconset)
     run('/usr/bin/iconutil', '-c', 'icns', iconset, '-o', contents / 'Resources/AppIcon.icns')
-    plist(contents / 'Info.plist', {'CFBundleExecutable': 'SWPulse', 'CFBundleIdentifier': 'ru.swpulse.menubar',
+    plist(contents / 'Info.plist', {'CFBundleExecutable': 'Pulsebar', 'CFBundleIdentifier': 'ru.swpulse.menubar',
           'CFBundleName': 'Pulsebar', 'CFBundleDisplayName': 'Pulsebar',
-          'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '2.2', 'CFBundleVersion': '4',
+          'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '2.2', 'CFBundleVersion': '5',
           'LSUIElement': True, 'LSMinimumSystemVersion': '14.0', 'NSHighResolutionCapable': True, 'CFBundleIconFile': 'AppIcon'})
     run('/usr/bin/codesign', '--force', '--deep', '--sign', '-', app)
     run('/usr/bin/codesign', '--verify', '--deep', '--strict', app)
