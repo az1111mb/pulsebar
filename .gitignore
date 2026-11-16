@@ -1,0 +1,17 @@
+.build/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.app/
+*.zip
+*.log
+*.json
+.env*
+*.pem
+*.key
+*.p12
+*.mobileprovision
+reports/
+runtimes/
+*-venv/
+.venv/
